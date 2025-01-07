@@ -4,6 +4,21 @@ from tkinter import messagebox
 import json
 import os
 from datetime import datetime
+from PIL import Image, ImageTk, ImageDraw
+import tkinter.ttk as ttk
+
+COLORS = {
+    'primary': '#2C3E50',      # Dark blue-grey
+    'secondary': '#3498DB',    # Bright blue
+    'accent': '#E74C3C',       # Red
+    'background': '#ECF0F1',   # Light grey
+    'text': '#2C3E50',         # Dark blue-grey
+    'button': '#2980B9',       # Darker blue
+    'button_hover': '#3498DB', # Lighter blue
+    'success': '#27AE60',      # Green
+    'warning': '#F1C40F'       # Yellow
+}
+
 # achievements
 ACHIEVEMENTS = {
     "first_win": {"name": "First Victory", "description": "Win your first game", "icon": "🏆"},
@@ -20,45 +35,79 @@ WORD_CATEGORIES = {
     "Sports": ["FOOTBALL", "TENNIS", "CRICKET", "BOXING", "RUGBY"],
     "Food": ["PIZZA", "BURGER", "SUSHI", "PASTA", "TACO"]
 }
+class StyledButton(tk.Button):
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.configure(
+            bg=COLORS['button'],
+            fg='white',
+            font=('Helvetica', 12, 'bold'),
+            pady=10,
+            bd=0,
+            cursor='hand2',
+            activebackground=COLORS['button_hover'],
+            activeforeground='white'
+        )
+        self.bind('<Enter>', self.on_enter)
+        self.bind('<Leave>', self.on_leave)
 
+    def on_enter(self, e):
+        self['background'] = COLORS['button_hover']
+
+    def on_leave(self, e):
+        self['background'] = COLORS['button']
 
 class MainMenu:
     def __init__(self, root):
         self.root = root
         self.root.title("Hangman Game")
-        self.root.geometry("700x700")
+        self.root.geometry("800x800")
+        self.root.configure(bg=COLORS['background'])
 
-        # Main menu container
-        self.menu_frame = tk.Frame(root)
+        # Main container with padding
+        self.menu_frame = tk.Frame(root, bg=COLORS['background'], padx=40, pady=40)
         self.menu_frame.pack(expand=True, fill='both')
 
-        # Title
-        tk.Label(self.menu_frame,
-                 text="HANGMAN GAME",
-                 font=("Helvetica", 32, "bold")).pack(pady=30)
+        # Title section
+        title_frame = tk.Frame(self.menu_frame, bg=COLORS['background'])
+        title_frame.pack(pady=(0, 40))
 
-        # Start Game Button (Single Player)
-        tk.Button(self.menu_frame,
-                  text="Single Player",
-                  font=("Helvetica", 16),
-                  command=self.show_categories).pack(pady=20)
+        tk.Label(title_frame,
+                text="HANGMAN",
+                font=("Helvetica", 52, "bold"),
+                fg=COLORS['primary'],
+                bg=COLORS['background']).pack()
 
-        # Add PvP Button
-        tk.Button(self.menu_frame,
-                  text="Player vs Player",
-                  font=("Helvetica", 16),
-                  command=self.start_pvp).pack(pady=20)
+        tk.Label(title_frame,
+                text="GAME",
+                font=("Helvetica", 24),
+                fg=COLORS['secondary'],
+                bg=COLORS['background']).pack()
 
-        tk.Button(self.menu_frame,
-                  text="Game History",
-                  font=("Helvetica", 16),
-                  command=self.show_history).pack(pady=20)
+        # Buttons container
+        buttons_frame = tk.Frame(self.menu_frame, bg=COLORS['background'])
+        buttons_frame.pack(pady=20)
 
-        # Exit Button
-        tk.Button(self.menu_frame,
-                  text="Exit",
-                  font=("Helvetica", 16),
-                  command=root.quit).pack(pady=10)
+        # Menu buttons with consistent styling
+        StyledButton(buttons_frame,
+                    text="Single Player",
+                    command=self.show_categories,
+                    width=20).pack(pady=10)
+
+        StyledButton(buttons_frame,
+                    text="Player vs Player",
+                    command=self.start_pvp,
+                    width=20).pack(pady=10)
+
+        StyledButton(buttons_frame,
+                    text="Game History",
+                    command=self.show_history,
+                    width=20).pack(pady=10)
+
+        StyledButton(buttons_frame,
+                    text="Exit",
+                    command=root.quit,
+                    width=20).pack(pady=10)
     # history
     def show_history(self):
         self.menu_frame.pack_forget()
@@ -69,30 +118,34 @@ class MainMenu:
         PvPHangmanGame(self.root)
 
     def show_categories(self):
-        # Hide main menu
         self.menu_frame.pack_forget()
 
-        # Create category selection frame
-        self.category_frame = tk.Frame(self.root)
+        self.category_frame = tk.Frame(self.root, bg=COLORS['background'], padx=40, pady=40)
         self.category_frame.pack(expand=True, fill='both')
 
+        # Title
         tk.Label(self.category_frame,
                  text="Select Category",
-                 font=("Helvetica", 24, "bold")).pack(pady=20)
+                 font=("Helvetica", 36, "bold"),
+                 fg=COLORS['primary'],
+                 bg=COLORS['background']).pack(pady=(0, 30))
 
-        # Create buttons for each category
+        # Category buttons container
+        categories_frame = tk.Frame(self.category_frame, bg=COLORS['background'])
+        categories_frame.pack()
+
+        # Create styled category buttons
         for category in WORD_CATEGORIES.keys():
-            tk.Button(self.category_frame,
-                      text=category,
-                      font=("Helvetica", 14),
-                      width=20,
-                      command=lambda c=category: self.start_game(c)).pack(pady=10)
+            StyledButton(categories_frame,
+                         text=category,
+                         command=lambda c=category: self.start_game(c),
+                         width=25).pack(pady=8)
 
         # Back button
-        tk.Button(self.category_frame,
-                  text="Back to Main Menu",
-                  font=("Helvetica", 12),
-                  command=self.back_to_menu).pack(pady=20)
+        StyledButton(self.category_frame,
+                     text="Back to Main Menu",
+                     command=self.back_to_menu,
+                     width=20).pack(pady=(30, 0))
 
     def back_to_menu(self):
         self.category_frame.pack_forget()
@@ -102,61 +155,137 @@ class MainMenu:
         self.category_frame.pack_forget()
         HangmanGame(self.root, category)
 
+
 class GameHistoryWindow:
     def __init__(self, root):
         self.root = root
-        self.frame = tk.Frame(root)
+        self.frame = tk.Frame(root, bg=COLORS['background'], padx=40, pady=40)
         self.frame.pack(expand=True, fill='both')
 
-        # Title
-        tk.Label(self.frame, text="Game History", font=("Helvetica", 24, "bold")).pack(pady=10)
+        # Title with decorative line
+        tk.Label(self.frame,
+                 text="Game History",
+                 font=("Helvetica", 36, "bold"),
+                 fg=COLORS['primary'],
+                 bg=COLORS['background']).pack(pady=(0, 30))
 
-        # Stats Frame
-        stats_frame = tk.Frame(self.frame)
-        stats_frame.pack(pady=10)
-
-        # Load stats
-        self.game_stats = GameStats()
-        stats = self.game_stats.stats
-
-        # Display overall stats
-        tk.Label(stats_frame,
-                 text=f"Total Games: {stats['total_games']}\n"
-                      f"Wins: {stats['total_wins']}\n"
-                      f"Current Streak: {stats['current_streak']}\n"
-                      f"Best Streak: {stats['best_streak']}",
-                 font=("Helvetica", 12)).pack()
-
-        # Achievements Frame
-        achievement_frame = tk.Frame(self.frame)
-        achievement_frame.pack(pady=10)
-        tk.Label(achievement_frame, text="Achievements", font=("Helvetica", 16, "bold")).pack()
-
-        for achievement_id in stats['achievements']:
-            achievement = ACHIEVEMENTS[achievement_id]
-            tk.Label(achievement_frame,
-                     text=f"{achievement['icon']} {achievement['name']}: {achievement['description']}",
-                     font=("Helvetica", 10)).pack()
-
-        # Game History List
-        history_frame = tk.Frame(self.frame)
-        history_frame.pack(pady=10, fill='both', expand=True)
-        tk.Label(history_frame, text="Recent Games", font=("Helvetica", 16, "bold")).pack()
-
-        for game in stats['game_history'][:10]:  # Show last 10 games
-            tk.Label(history_frame,
-                     text=f"{game['date']} - {game['category']}: {game['word']} "
-                          f"({game['result']} - {game['guesses_left']} guesses left)",
-                     font=("Helvetica", 10)).pack()
+        # Create tabbed interface
+        self.create_notebook()
 
         # Back button
-        tk.Button(self.frame,
-                  text="Back to Main Menu",
-                  command=self.return_to_menu).pack(pady=10)
+        StyledButton(self.frame,
+                     text="Back to Main Menu",
+                     command=self.return_to_menu,
+                     width=20).pack(pady=20)
+
+    def create_notebook(self):
+        style = ttk.Style()
+        style.configure("Custom.TNotebook", background=COLORS['background'])
+        style.configure("Custom.TNotebook.Tab", padding=[12, 8], font=('Helvetica', 10))
+
+        notebook = ttk.Notebook(self.frame, style="Custom.TNotebook")
+        notebook.pack(fill='both', expand=True, pady=20)
+
+        # Create and add tabs
+        stats_frame = self.create_stats_tab(notebook)
+        achievements_frame = self.create_achievements_tab(notebook)
+        history_frame = self.create_history_tab(notebook)
+
+        notebook.add(stats_frame, text='Statistics')
+        notebook.add(achievements_frame, text='Achievements')
+        notebook.add(history_frame, text='Recent Games')
+
+    def create_stats_tab(self, notebook):
+        frame = tk.Frame(notebook, bg=COLORS['background'], padx=20, pady=20)
+        stats = GameStats().stats
+
+        # Create styled stats display
+        stats_text = f"""
+        Total Games Played: {stats['total_games']}
+        Total Wins: {stats['total_wins']}
+        Current Streak: {stats['current_streak']}
+        Best Streak: {stats['best_streak']}
+        Win Rate: {(stats['total_wins'] / stats['total_games'] * 100 if stats['total_games'] > 0 else 0):.1f}%
+        """
+
+        tk.Label(frame,
+                 text=stats_text,
+                 font=("Helvetica", 14),
+                 justify='left',
+                 bg=COLORS['background'],
+                 fg=COLORS['text']).pack(pady=20)
+
+        return frame
+
+    def create_history_tab(self, notebook):
+        frame = tk.Frame(notebook, bg=COLORS['background'], padx=20, pady=20)
+        stats = GameStats().stats
+
+        # Create scrollable frame for game history
+        canvas = tk.Canvas(frame, bg=COLORS['background'])
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=COLORS['background'])
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        # Add recent games to scrollable frame
+        for game in stats['game_history'][:20]:  # Show last 20 games
+            game_frame = tk.Frame(scrollable_frame, bg=COLORS['background'])
+            game_frame.pack(fill='x', pady=5)
+
+            game_text = f"{game['date']}\n{game['category']}: {game['word']}\n"
+            game_text += f"Result: {game['result']} ({game['guesses_left']} guesses left)"
+
+            tk.Label(game_frame,
+                     text=game_text,
+                     font=("Helvetica", 10),
+                     bg=COLORS['background'],
+                     fg=COLORS['text'],
+                     justify='left').pack(anchor='w')
+
+        # Pack scrollbar and canvas
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
+        return frame
+
+    def create_achievements_tab(self, notebook):
+        frame = tk.Frame(notebook, bg=COLORS['background'], padx=20, pady=20)
+        stats = GameStats().stats
+
+        for achievement_id in ACHIEVEMENTS:
+            achievement = ACHIEVEMENTS[achievement_id]
+            is_unlocked = achievement_id in stats['achievements']
+
+            achievement_frame = tk.Frame(frame, bg=COLORS['background'])
+            achievement_frame.pack(fill='x', pady=5)
+
+            # Achievement icon and name
+            tk.Label(achievement_frame,
+                     text=f"{achievement['icon']} {achievement['name']}",
+                     font=("Helvetica", 12, "bold"),
+                     fg=COLORS['primary'] if is_unlocked else 'gray',
+                     bg=COLORS['background']).pack(anchor='w')
+
+            # Achievement description
+            tk.Label(achievement_frame,
+                     text=achievement['description'],
+                     font=("Helvetica", 10),
+                     fg=COLORS['text'] if is_unlocked else 'gray',
+                     bg=COLORS['background']).pack(anchor='w')
+
+        return frame
 
     def return_to_menu(self):
         self.frame.destroy()
         MainMenu(self.root)
+
 
 class GameStats:
     def __init__(self):
@@ -190,50 +319,90 @@ class GameStats:
             "guesses_left": guesses_left,
             "result": "Win" if is_win else "Loss"
         }
-        self.stats["game_history"].insert(0, game_record)  # Add at beginning
+        self.stats["game_history"].insert(0, game_record)
         self.stats["total_games"] += 1
 
         if is_win:
             self.stats["total_wins"] += 1
             self.stats["current_streak"] += 1
-            self.stats["best_streak"] = max(self.stats["best_streak"], self.stats["current_streak"])
+            self.stats["best_streak"] = max(self.stats["best_streak"],
+                                            self.stats["current_streak"])
 
-            # Update category wins
             if category not in self.stats["category_wins"]:
                 self.stats["category_wins"][category] = 0
             self.stats["category_wins"][category] += 1
 
-            # Check achievements
             self.check_achievements(guesses_left, category)
         else:
             self.stats["current_streak"] = 0
 
-        # Keep only last 50 games
         self.stats["game_history"] = self.stats["game_history"][:50]
         self.save_stats()
 
     def check_achievements(self, guesses_left, category):
         achievements = self.stats["achievements"]
 
-        # First win
+        # First win achievement
         if self.stats["total_wins"] == 1 and "first_win" not in achievements:
             achievements.append("first_win")
+            self.show_achievement_popup("First Victory! 🏆")
 
-        # Perfect game
+        # Perfect game achievement
         if guesses_left == 6 and "perfect_game" not in achievements:
             achievements.append("perfect_game")
+            self.show_achievement_popup("Perfect Game! ⭐")
 
-        # Winning streak
+        # Winning streak achievement
         if self.stats["current_streak"] >= 5 and "winning_streak_5" not in achievements:
             achievements.append("winning_streak_5")
+            self.show_achievement_popup("5-Win Streak! 🔥")
 
-        # Category master
-        if len(self.stats["category_wins"]) == len(WORD_CATEGORIES) and "category_master" not in achievements:
+        # Category master achievement
+        if (len(self.stats["category_wins"]) == len(WORD_CATEGORIES)
+                and "category_master" not in achievements):
             achievements.append("category_master")
+            self.show_achievement_popup("Category Master! 👑")
 
-        # Quick solver
+        # Quick solver achievement
         if guesses_left >= 4 and "quick_solver" not in achievements:
             achievements.append("quick_solver")
+            self.show_achievement_popup("Quick Solver! ⚡")
+
+    def show_achievement_popup(self, message):
+        popup = tk.Toplevel()
+        popup.title("Achievement Unlocked!")
+        popup.configure(bg=COLORS['background'])
+
+        # Center the popup
+        window_width = 300
+        window_height = 150
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        popup.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+        # Achievement message
+        tk.Label(popup,
+                 text="Achievement Unlocked!",
+                 font=("Helvetica", 16, "bold"),
+                 fg=COLORS['primary'],
+                 bg=COLORS['background']).pack(pady=(20, 10))
+
+        tk.Label(popup,
+                 text=message,
+                 font=("Helvetica", 14),
+                 fg=COLORS['secondary'],
+                 bg=COLORS['background']).pack(pady=10)
+
+        # Close button
+        StyledButton(popup,
+                     text="OK",
+                     command=popup.destroy,
+                     width=10).pack(pady=10)
+
+        # Auto-close after 3 seconds
+        popup.after(3000, popup.destroy)
 
 class PvPHangmanGame:
     def __init__(self, root):
@@ -241,32 +410,45 @@ class PvPHangmanGame:
         self.setup_word_input()
 
     def setup_word_input(self):
-        self.input_frame = tk.Frame(self.root)
+        self.input_frame = tk.Frame(self.root, bg=COLORS['background'], padx=40, pady=40)
         self.input_frame.pack(expand=True, fill='both')
 
+        # Title
+        tk.Label(self.input_frame,
+                text="Player vs Player Mode",
+                font=("Helvetica", 36, "bold"),
+                fg=COLORS['primary'],
+                bg=COLORS['background']).pack(pady=(0, 20))
+
+        # Instructions
         tk.Label(self.input_frame,
                 text="Player 1: Enter a word for Player 2 to guess",
-                font=("Helvetica", 18)).pack(pady=20)
+                font=("Helvetica", 16),
+                fg=COLORS['text'],
+                bg=COLORS['background']).pack(pady=(0, 20))
 
-        # Entry widget for the word
+        # Word entry with styled frame
+        entry_frame = tk.Frame(self.input_frame, bg=COLORS['background'])
+        entry_frame.pack(pady=20)
+
         self.word_var = tk.StringVar()
-        self.word_entry = tk.Entry(self.input_frame,
+        self.word_entry = tk.Entry(entry_frame,
                                  textvariable=self.word_var,
                                  font=("Helvetica", 14),
-                                 show="*")  # Hide the input with asterisks
-        self.word_entry.pack(pady=10)
+                                 show="*",
+                                 width=30)
+        self.word_entry.pack()
 
-        # Submit button
-        tk.Button(self.input_frame,
-                 text="Start Game",
-                 font=("Helvetica", 14),
-                 command=self.start_game).pack(pady=10)
+        # Buttons
+        StyledButton(self.input_frame,
+                    text="Start Game",
+                    command=self.start_game,
+                    width=20).pack(pady=10)
 
-        # Back button
-        tk.Button(self.input_frame,
-                 text="Back to Main Menu",
-                 font=("Helvetica", 12),
-                 command=self.return_to_menu).pack(pady=10)
+        StyledButton(self.input_frame,
+                    text="Back to Main Menu",
+                    command=self.return_to_menu,
+                    width=20).pack(pady=10)
 
     def start_game(self):
         word = self.word_var.get().upper()
@@ -291,6 +473,7 @@ class HangmanGame:
         self.category = category
         self.game_frame = tk.Frame(root)
         self.game_frame.pack(expand=True, fill='both')
+        self.setup_keyboard()
 
         if custom_word:
             self.root.title("Hangman Game - Player vs Player")
@@ -340,7 +523,50 @@ class HangmanGame:
 
         self.hangman_parts = [self.draw_head, self.draw_body, self.draw_left_arm,
                               self.draw_right_arm, self.draw_left_leg, self.draw_right_leg]
+    def setup_keyboard(self):
+            keyboard_frame = tk.Frame(self.game_frame, bg=COLORS['background'])
+            keyboard_frame.pack(pady=20)
 
+            qwerty_layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+            self.buttons = {}
+
+            for row, keys in enumerate(qwerty_layout):
+                row_frame = tk.Frame(keyboard_frame, bg=COLORS['background'])
+                row_frame.pack(pady=5)
+
+                # Add padding for middle row alignment
+                if row == 1:  # ASDFGHJKL row
+                    tk.Label(row_frame, width=2, bg=COLORS['background']).pack(side='left')
+                elif row == 2:  # ZXCVBNM row
+                    tk.Label(row_frame, width=4, bg=COLORS['background']).pack(side='left')
+
+                for key in keys:
+                    btn = tk.Button(row_frame,
+                                    text=key,
+                                    font=("Helvetica", 14, "bold"),
+                                    width=4,
+                                    height=2,
+                                    bg=COLORS['button'],
+                                    fg='white',
+                                    bd=0,
+                                    command=lambda l=key: self.guess_letter(l))
+                    btn.pack(side='left', padx=3)
+                    self.buttons[key] = btn
+    def draw_hangman_improved(self):
+            # Enhanced hangman drawing with thicker lines and better proportions
+            self.canvas.delete("all")
+
+            # Base
+            self.canvas.create_line(50, 230, 150, 230, width=3)
+            # Pole
+            self.canvas.create_line(100, 230, 100, 50, width=3)
+            # Top beam
+            self.canvas.create_line(100, 50, 150, 50, width=3)
+            # Rope
+            self.canvas.create_line(150, 50, 150, 70, width=3)
+    def update_game_status(self, message, is_win=False):
+            color = COLORS['success'] if is_win else COLORS['warning']
+            self.guess_label.configure(text=message, fg=color)
     def return_to_menu(self):
         self.game_frame.destroy()
         MainMenu(self.root)
@@ -396,8 +622,11 @@ class HangmanGame:
     def end_game(self, message):
         for button in self.buttons.values():
             button.config(state="disabled")
-        self.guess_label.config(text=message)
+
         is_win = "_" not in self.correct_guesses
+        color = COLORS['success'] if is_win else COLORS['warning']
+        self.guess_label.config(text=message, fg=color)
+
         self.game_stats.add_game(
             word=self.word,
             category=self.category,
@@ -405,10 +634,11 @@ class HangmanGame:
             is_win=is_win
         )
 
-        # Add Play Again button
-        tk.Button(self.game_frame,
-                  text="Play Again",
-                  command=self.return_to_menu).pack(pady=10)
+        # Add Play Again button with new style
+        StyledButton(self.game_frame,
+                     text="Play Again",
+                     command=self.return_to_menu,
+                     width=20).pack(pady=10)
 
 
 # Create the main window
