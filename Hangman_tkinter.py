@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from PIL import Image, ImageTk, ImageDraw
 import tkinter.ttk as ttk
+import math
 
 COLORS = {
     'primary': '#2C3E50',      # Dark blue-grey
@@ -15,6 +16,19 @@ COLORS = {
     'text': '#2C3E50',         # Dark blue-grey
     'button': '#2980B9',       # Darker blue
     'button_hover': '#3498DB', # Lighter blue
+    'success': '#27AE60',      # Green
+    'warning': '#F1C40F'       # Yellow
+}
+LIGHT_COLORS = COLORS.copy()  # Store the original light colors
+
+DARK_COLORS = {
+    'primary': '#ECF0F1',      # Light grey
+    'secondary': '#3498DB',    # Bright blue
+    'accent': '#E74C3C',       # Red
+    'background': '#2C3E50',   # Dark blue-grey
+    'text': '#ECF0F1',         # Light grey
+    'button': '#34495E',       # Darker blue-grey
+    'button_hover': '#2980B9', # Blue
     'success': '#27AE60',      # Green
     'warning': '#F1C40F'       # Yellow
 }
@@ -57,6 +71,24 @@ class StyledButton(tk.Button):
     def on_leave(self, e):
         self['background'] = COLORS['button']
 
+
+def create_gear_icon(size=32, color='white'):
+    # Create a new image with transparency
+    image = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+
+    # Draw outer circle
+    draw.ellipse([4, 4, size - 4, size - 4], outline=color, width=2)
+
+    # Draw gear teeth (simplified)
+    for i in range(8):
+        angle = i * 45
+        x = size / 2 + (size / 2 - 2) * math.cos(math.radians(angle))
+        y = size / 2 + (size / 2 - 2) * math.sin(math.radians(angle))
+        draw.rectangle([x - 3, y - 3, x + 3, y + 3], fill=color)
+
+    return ImageTk.PhotoImage(image)
+
 class MainMenu:
     def __init__(self, root):
         self.root = root
@@ -65,12 +97,27 @@ class MainMenu:
         self.root.configure(bg=COLORS['background'])
 
         # Main container with padding
-        self.menu_frame = tk.Frame(root, bg=COLORS['background'], padx=40, pady=40)
+        self.menu_frame = tk.Frame(root, bg=COLORS['background'])
         self.menu_frame.pack(expand=True, fill='both')
+
+        # Create top frame for gear icon
+        self.gear_frame = tk.Frame(self.menu_frame, bg=COLORS['background'])
+        self.gear_frame.pack(fill='x', pady=(10, 0))  # Add to top with padding
+
+        # Create gear icon button in top-right corner
+        self.gear_icon = create_gear_icon()
+        gear_button = tk.Button(self.gear_frame,
+                              image=self.gear_icon,
+                              bg=COLORS['background'],
+                              activebackground=COLORS['background'],
+                              bd=0,
+                              cursor='hand2',
+                              command=self.show_settings)
+        gear_button.pack(side='right', padx=20)  # Position on right side
 
         # Title section
         title_frame = tk.Frame(self.menu_frame, bg=COLORS['background'])
-        title_frame.pack(pady=(0, 40))
+        title_frame.pack(pady=(20, 40))  # Adjusted padding
 
         tk.Label(title_frame,
                 text="HANGMAN",
@@ -108,6 +155,8 @@ class MainMenu:
                     text="Exit",
                     command=root.quit,
                     width=20).pack(pady=10)
+
+
     # history
     def show_history(self):
         self.menu_frame.pack_forget()
@@ -146,6 +195,10 @@ class MainMenu:
                      text="Back to Main Menu",
                      command=self.back_to_menu,
                      width=20).pack(pady=(30, 0))
+
+    def show_settings(self):
+        self.menu_frame.pack_forget()
+        SettingsWindow(self.root, self)
 
     def back_to_menu(self):
         self.category_frame.pack_forget()
@@ -514,33 +567,39 @@ class HangmanGame:
                               self.draw_right_arm, self.draw_left_leg, self.draw_right_leg]
 
     def setup_keyboard(self):
+        settings = Settings().settings
+        scale = settings["keyboard_scale"]
+
         keyboard_frame = tk.Frame(self.game_frame, bg=COLORS['background'])
         keyboard_frame.pack(pady=20)
 
         qwerty_layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
         self.buttons = {}
 
+        button_width = max(2, int(4 / scale))
+        button_height = max(1, int(2 / scale))
+        font_size = int(14 * scale)
+
         for row, keys in enumerate(qwerty_layout):
             row_frame = tk.Frame(keyboard_frame, bg=COLORS['background'])
             row_frame.pack(pady=5)
 
-            # Add padding for middle row alignment
-            if row == 1:  # ASDFGHJKL row
+            if row == 1:
                 tk.Label(row_frame, width=2, bg=COLORS['background']).pack(side='left')
-            elif row == 2:  # ZXCVBNM row
+            elif row == 2:
                 tk.Label(row_frame, width=4, bg=COLORS['background']).pack(side='left')
 
             for key in keys:
                 btn = tk.Button(row_frame,
                                 text=key,
-                                font=("Helvetica", 14, "bold"),
-                                width=4,
-                                height=2,
+                                font=("Helvetica", font_size, "bold"),
+                                width=button_width,
+                                height=button_height,
                                 bg=COLORS['button'],
-                                fg='white',
+                                fg=COLORS['text'],
                                 bd=0,
                                 activebackground=COLORS['button_hover'],
-                                activeforeground='white',
+                                activeforeground=COLORS['text'],
                                 command=lambda l=key: self.guess_letter(l))
                 btn.pack(side='left', padx=3)
                 self.buttons[key] = btn
@@ -627,6 +686,161 @@ class HangmanGame:
         tk.Button(self.game_frame,
                   text="Play Again",
                   command=self.return_to_menu).pack(pady=10)
+
+
+class Settings:
+    def __init__(self):
+        self.settings_file = "hangman_settings.json"
+        self.load_settings()
+
+    def load_settings(self):
+        if os.path.exists(self.settings_file):
+            with open(self.settings_file, 'r') as f:
+                self.settings = json.load(f)
+        else:
+            self.settings = {
+                "dark_mode": False,
+                "button_size": "normal",  # normal, large, extra-large
+                "keyboard_scale": 1.0  # 1.0 = normal, 1.5 = large, 2.0 = extra-large
+            }
+
+        # Apply settings immediately upon loading
+        self.apply_settings()
+
+    def apply_settings(self):
+        global COLORS
+        COLORS = DARK_COLORS if self.settings["dark_mode"] else LIGHT_COLORS
+
+    def save_settings(self):
+        with open(self.settings_file, 'w') as f:
+            json.dump(self.settings, f)
+        self.apply_settings()
+
+
+class SettingsWindow:
+    def __init__(self, root, main_menu):
+        self.root = root
+        self.main_menu = main_menu
+        self.settings = Settings()
+        self.setup_window()
+
+    def setup_window(self):
+        self.frame = tk.Frame(self.root, bg=COLORS['background'], padx=40, pady=40)
+        self.frame.pack(expand=True, fill='both')
+
+        # Title
+        tk.Label(self.frame,
+                text="Settings",
+                font=("Helvetica", 36, "bold"),
+                fg=COLORS['primary'],
+                bg=COLORS['background']).pack(pady=(0, 30))
+
+        # Settings Container
+        settings_frame = tk.Frame(self.frame, bg=COLORS['background'])
+        settings_frame.pack(pady=20)
+
+        # Dark Mode Toggle
+        dark_mode_frame = tk.Frame(settings_frame, bg=COLORS['background'])
+        dark_mode_frame.pack(fill='x', pady=10)
+
+        tk.Label(dark_mode_frame,
+                text="Dark Mode",
+                font=("Helvetica", 14),
+                fg=COLORS['text'],
+                bg=COLORS['background']).pack(side='left', padx=10)
+
+        self.dark_mode_var = tk.BooleanVar(value=self.settings.settings["dark_mode"])
+        tk.Checkbutton(dark_mode_frame,
+                      variable=self.dark_mode_var,
+                      command=self.toggle_dark_mode,
+                      bg=COLORS['background'],
+                      activebackground=COLORS['background'],
+                      selectcolor=COLORS['button']).pack(side='left')
+
+        # Button Size Selection
+        size_frame = tk.Frame(settings_frame, bg=COLORS['background'])
+        size_frame.pack(fill='x', pady=10)
+
+        tk.Label(size_frame,
+                text="Button Size:",
+                font=("Helvetica", 14),
+                fg=COLORS['text'],
+                bg=COLORS['background']).pack(side='left', padx=10)
+
+        self.button_size_var = tk.StringVar(value=self.settings.settings["button_size"].title())
+        sizes = ["Normal", "Large", "Extra Large"]
+        size_menu = ttk.OptionMenu(size_frame,
+                                 self.button_size_var,
+                                 self.button_size_var.get(),
+                                 *sizes,
+                                 command=self.change_button_size)
+        size_menu.pack(side='left')
+
+        # Preview Section
+        preview_frame = tk.Frame(self.frame, bg=COLORS['background'])
+        preview_frame.pack(pady=20)
+
+        tk.Label(preview_frame,
+                text="Preview:",
+                font=("Helvetica", 14),
+                fg=COLORS['text'],
+                bg=COLORS['background']).pack(pady=10)
+
+        self.preview_button = StyledButton(preview_frame,
+                                         text="Sample Button",
+                                         command=lambda: None,
+                                         width=15)
+        self.preview_button.pack()
+
+        # Save and Return Button
+        StyledButton(self.frame,
+                    text="Save and Return",
+                    command=self.save_and_return,
+                    width=20).pack(pady=30)
+
+    def toggle_dark_mode(self):
+        global COLORS
+        self.settings.settings["dark_mode"] = self.dark_mode_var.get()
+        COLORS = DARK_COLORS if self.dark_mode_var.get() else LIGHT_COLORS
+
+        # Update all visible elements with new colors
+        self.frame.configure(bg=COLORS['background'])
+        for widget in self.frame.winfo_children():
+            if isinstance(widget, tk.Label):
+                widget.configure(bg=COLORS['background'], fg=COLORS['text'])
+            elif isinstance(widget, tk.Frame):
+                widget.configure(bg=COLORS['background'])
+
+        self.update_preview()
+
+    def change_button_size(self, *args):
+        size = self.button_size_var.get().lower()
+        scale = 1.0
+        if size == "large":
+            scale = 1.5
+        elif size == "extra large":
+            scale = 2.0
+
+        self.settings.settings["button_size"] = size
+        self.settings.settings["keyboard_scale"] = scale
+        self.update_preview()
+
+    def update_preview(self):
+        scale = self.settings.settings["keyboard_scale"]
+        font_size = int(12 * scale)
+        button_width = int(15 / scale)
+
+        self.preview_button.configure(
+            font=('Helvetica', font_size, 'bold'),
+            width=button_width,
+            bg=COLORS['button'],
+            fg='white'
+        )
+
+    def save_and_return(self):
+        self.settings.save_settings()
+        self.frame.destroy()
+        self.main_menu.__init__(self.root)  # Refresh main menu with new settings
 
 
 # Create the main window
