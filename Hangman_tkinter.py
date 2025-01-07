@@ -471,9 +471,8 @@ class HangmanGame:
         self.root = root
         self.game_stats = GameStats()
         self.category = category
-        self.game_frame = tk.Frame(root)
+        self.game_frame = tk.Frame(root, bg=COLORS['background'])
         self.game_frame.pack(expand=True, fill='both')
-        self.setup_keyboard()
 
         if custom_word:
             self.root.title("Hangman Game - Player vs Player")
@@ -486,11 +485,17 @@ class HangmanGame:
         self.correct_guesses = ["_"] * len(self.word)
 
         # Display for current word status
-        self.word_label = tk.Label(self.game_frame, text=" ".join(self.correct_guesses), font=("Helvetica", 24))
+        self.word_label = tk.Label(self.game_frame,
+                                   text=" ".join(self.correct_guesses),
+                                   font=("Helvetica", 24),
+                                   bg=COLORS['background'])
         self.word_label.pack(pady=20)
 
         # Display for remaining guesses
-        self.guess_label = tk.Label(self.game_frame, text=f"Guesses left: {self.guesses}", font=("Helvetica", 14))
+        self.guess_label = tk.Label(self.game_frame,
+                                    text=f"Guesses left: {self.guesses}",
+                                    font=("Helvetica", 14),
+                                    bg=COLORS['background'])
         self.guess_label.pack(pady=10)
 
         # Canvas for hangman drawing
@@ -498,60 +503,49 @@ class HangmanGame:
         self.canvas.pack(pady=20)
         self.draw_base()
 
-        # QWERTY Keyboard Layout
-        qwerty_layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
-
-        # Frame for alphabet buttons
-        self.buttons_frame = tk.Frame(self.game_frame)
-        self.buttons_frame.pack()
-
-        # Create buttons according to QWERTY layout
-        self.buttons = {}
-        for row, keys in enumerate(qwerty_layout):
-            row_frame = tk.Frame(self.buttons_frame)
-            row_frame.pack(pady=5)
-            for key in keys:
-                button = tk.Button(row_frame, text=key, font=("Helvetica", 14), width=3,
-                                   command=lambda l=key: self.guess_letter(l))
-                button.pack(side="left", padx=3)
-                self.buttons[key] = button
+        # Setup keyboard (only once)
+        self.setup_keyboard()
 
         # Back to menu button
-        tk.Button(self.game_frame,
-                  text="Back to Main Menu",
-                  command=self.return_to_menu).pack(pady=10)
+        StyledButton(self.game_frame,
+                     text="Back to Main Menu",
+                     command=self.return_to_menu,
+                     width=20).pack(pady=10)
 
         self.hangman_parts = [self.draw_head, self.draw_body, self.draw_left_arm,
                               self.draw_right_arm, self.draw_left_leg, self.draw_right_leg]
+
     def setup_keyboard(self):
-            keyboard_frame = tk.Frame(self.game_frame, bg=COLORS['background'])
-            keyboard_frame.pack(pady=20)
+        keyboard_frame = tk.Frame(self.game_frame, bg=COLORS['background'])
+        keyboard_frame.pack(pady=20)
 
-            qwerty_layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
-            self.buttons = {}
+        qwerty_layout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"]
+        self.buttons = {}
 
-            for row, keys in enumerate(qwerty_layout):
-                row_frame = tk.Frame(keyboard_frame, bg=COLORS['background'])
-                row_frame.pack(pady=5)
+        for row, keys in enumerate(qwerty_layout):
+            row_frame = tk.Frame(keyboard_frame, bg=COLORS['background'])
+            row_frame.pack(pady=5)
 
-                # Add padding for middle row alignment
-                if row == 1:  # ASDFGHJKL row
-                    tk.Label(row_frame, width=2, bg=COLORS['background']).pack(side='left')
-                elif row == 2:  # ZXCVBNM row
-                    tk.Label(row_frame, width=4, bg=COLORS['background']).pack(side='left')
+            # Add padding for middle row alignment
+            if row == 1:  # ASDFGHJKL row
+                tk.Label(row_frame, width=2, bg=COLORS['background']).pack(side='left')
+            elif row == 2:  # ZXCVBNM row
+                tk.Label(row_frame, width=4, bg=COLORS['background']).pack(side='left')
 
-                for key in keys:
-                    btn = tk.Button(row_frame,
-                                    text=key,
-                                    font=("Helvetica", 14, "bold"),
-                                    width=4,
-                                    height=2,
-                                    bg=COLORS['button'],
-                                    fg='white',
-                                    bd=0,
-                                    command=lambda l=key: self.guess_letter(l))
-                    btn.pack(side='left', padx=3)
-                    self.buttons[key] = btn
+            for key in keys:
+                btn = tk.Button(row_frame,
+                                text=key,
+                                font=("Helvetica", 14, "bold"),
+                                width=4,
+                                height=2,
+                                bg=COLORS['button'],
+                                fg='white',
+                                bd=0,
+                                activebackground=COLORS['button_hover'],
+                                activeforeground='white',
+                                command=lambda l=key: self.guess_letter(l))
+                btn.pack(side='left', padx=3)
+                self.buttons[key] = btn
     def draw_hangman_improved(self):
             # Enhanced hangman drawing with thicker lines and better proportions
             self.canvas.delete("all")
