@@ -622,11 +622,8 @@ class HangmanGame:
     def end_game(self, message):
         for button in self.buttons.values():
             button.config(state="disabled")
-
+        self.guess_label.config(text=message)
         is_win = "_" not in self.correct_guesses
-        color = COLORS['success'] if is_win else COLORS['warning']
-        self.guess_label.config(text=message, fg=color)
-
         self.game_stats.add_game(
             word=self.word,
             category=self.category,
@@ -634,11 +631,10 @@ class HangmanGame:
             is_win=is_win
         )
 
-        # Add Play Again button with new style
-        StyledButton(self.game_frame,
-                     text="Play Again",
-                     command=self.return_to_menu,
-                     width=20).pack(pady=10)
+        # Add Play Again button
+        tk.Button(self.game_frame,
+                  text="Play Again",
+                  command=self.return_to_menu).pack(pady=10)
 
 
 # Create the main window
