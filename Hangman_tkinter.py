@@ -155,7 +155,6 @@ class MainMenu:
         self.category_frame.pack_forget()
         HangmanGame(self.root, category)
 
-
 class GameHistoryWindow:
     def __init__(self, root):
         self.root = root
@@ -285,7 +284,6 @@ class GameHistoryWindow:
     def return_to_menu(self):
         self.frame.destroy()
         MainMenu(self.root)
-
 
 class GameStats:
     def __init__(self):
